@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Before / After — Image Capture Tool</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0a0a0d;
+  --s1: #111115;
+  --s2: #18181e;
+  --s3: #222229;
+  --border: #2a2a35;
+  --border2: #35353f;
+  --acc: #e8ff47;
+  --acc2: #47d4ff;
+  --before: #ff6060;
+  --after: #3dffa0;
+  --text: #eeeef5;
+  --sub: #8888a0;
+  --muted: #55556a;
+  --r: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; min-height: 100vh; }
+
+.topbar {
+  background: var(--s1); border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--acc); flex-shrink: 0; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+
+.main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+/* settings bar */
+.settings-bar {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 20px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.sg { display: flex; align-items: center; gap: 8px; }
+.sl { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.sv { font-size: 0.75rem; color: var(--acc); min-width: 40px; font-weight: 600; }
+input[type=range] {
+  -webkit-appearance: none; height: 3px; background: var(--border2);
+  border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--acc); cursor: pointer;
+}
+.sep { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; }
+
+.rg { display: flex; gap: 6px; }
+.rb {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+  padding: 4px 11px; border-radius: 5px; cursor: pointer;
+  border: 1px solid var(--border2); background: transparent; color: var(--sub);
+  transition: all 0.15s;
+}
+.rb.on { background: var(--acc); color: #0a0a0d; border-color: var(--acc); font-weight: 600; }
+
+/* title row */
+.title-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.tf { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 16px; }
+.tf label { font-size: 0.62rem; color: var(--muted); letter-spacing: 0.1em; display: block; margin-bottom: 7px; }
+.ti {
+  width: 100%; background: var(--s2); border: 1px solid var(--border2);
+  border-radius: 7px; padding: 8px 12px;
+  color: var(--text); font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700;
+  outline: none; transition: border-color 0.2s;
+}
+.ti:focus { border-color: var(--acc); }
+.ti.b { color: var(--before); }
+.ti.a { color: var(--after); }
+
+/* panels */
+.sections { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+@media (max-width: 860px) { .sections { grid-template-columns: 1fr; } .title-row { grid-template-columns: 1fr; } }
+.panel { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.ph {
+  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.pt { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 9px; }
+.chip {
+  font-size: 0.6rem; font-family: 'JetBrains Mono', monospace;
+  padding: 2px 8px; border-radius: 20px; font-weight: 500; letter-spacing: 0.08em;
+}
+.cb { background: rgba(255,96,96,0.12); color: var(--before); border: 1px solid rgba(255,96,96,0.25); }
+.ca { background: rgba(61,255,160,0.1); color: var(--after); border: 1px solid rgba(61,255,160,0.25); }
+.ic { font-size: 0.67rem; color: var(--sub); }
+.pb { padding: 14px 16px; }
+
+/* dropzone */
+.dz {
+  border: 2px dashed var(--border2); border-radius: 8px;
+  padding: 18px; text-align: center; cursor: pointer;
+  transition: all 0.18s; position: relative; margin-bottom: 12px;
+}
+.dz:hover, .dz.over { border-color: var(--acc); background: rgba(232,255,71,0.03); }
+.dz input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.dz-icon { font-size: 1.3rem; margin-bottom: 4px; }
+.dz-t { font-size: 0.7rem; color: var(--sub); }
+.dz-t strong { color: var(--text); }
+
+/* grid */
+.ig {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  gap: 8px; max-height: 280px; overflow-y: auto; padding: 4px 2px;
+}
+.ig::-webkit-scrollbar { width: 4px; }
+.ig::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.it { position: relative; aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); cursor: grab; overflow: visible; }
+.it img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; display: block; }
+.it-num {
+  position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+  background: var(--s3); border: 1px solid var(--border2);
+  color: var(--acc); font-size: 0.57rem; font-weight: 700;
+  padding: 1px 7px; border-radius: 10px; white-space: nowrap;
+  font-family: 'Syne', sans-serif; z-index: 2;
+}
+.it-del {
+  position: absolute; top: 3px; right: 3px;
+  background: rgba(200,30,30,0.9); border: none; color: white;
+  width: 16px; height: 16px; border-radius: 50%; font-size: 0.55rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.15s; z-index: 3;
+}
+.it:hover .it-del { opacity: 1; }
+.eh { text-align: center; padding: 14px; color: var(--muted); font-size: 0.7rem; }
+.amb {
+  margin-top: 9px; width: 100%; background: transparent;
+  border: 1px dashed var(--border2); color: var(--sub);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  padding: 7px; border-radius: 7px; cursor: pointer; transition: all 0.15s;
+}
+.amb:hover { border-color: var(--acc2); color: var(--acc2); }
+
+/* capture */
+.cap-row { display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+.btn-cap {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.06em;
+  padding: 14px 42px; background: var(--acc); color: #0a0a0d;
+  border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 9px;
+}
+.btn-cap:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(232,255,71,0.28); }
+.btn-cap:disabled { opacity: 0.28; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-sec {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+  padding: 9px 20px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border2); background: transparent; color: var(--sub); transition: all 0.15s;
+}
+.btn-sec:hover { border-color: var(--text); color: var(--text); }
+
+/* modal */
+#modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92); z-index: 9999;
+  overflow-y: auto; padding: 28px 16px;
+}
+.mbox { max-width: 1300px; margin: 0 auto; background: var(--s1); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.mtop {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px; border-bottom: 1px solid var(--border); gap: 14px; flex-wrap: wrap;
+}
+.mtitle { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.92rem; }
+.mmeta { font-size: 0.65rem; color: var(--muted); margin-top: 3px; }
+.mbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-dl {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.75rem;
+  padding: 8px 18px; background: var(--acc); color: #0a0a0d;
+  border: none; border-radius: 6px; cursor: pointer; transition: background 0.15s;
+}
+.btn-dl:hover { background: #d0e83a; }
+.btn-dl.jpg { background: var(--acc2); }
+.btn-dl.jpg:hover { background: #38bce8; }
+.btn-cl {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.73rem;
+  padding: 8px 16px; border: 1px solid var(--border2);
+  background: transparent; color: var(--sub); border-radius: 6px; cursor: pointer; transition: all 0.15s;
+}
+.btn-cl:hover { border-color: var(--before); color: var(--before); }
+#cscroll { padding: 20px; overflow-x: auto; background: #060608; }
+#oc { display: block; border-radius: 8px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality; }
+
+/* loading */
+#loading {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 9998;
+  align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+}
+.spin { width: 40px; height: 40px; border: 3px solid var(--border2); border-top-color: var(--acc); border-radius: 50%; animation: sp 0.65s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+#lmsg { font-size: 0.75rem; color: var(--sub); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="logo-dot"></div>BEFORE / AFTER</div>
+  <div class="topbar-right">
+    <span id="tot" style="font-size:0.7rem;color:var(--muted)">0 images</span>
+    <button class="btn-sec" id="clr-btn">✕ Clear All</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SETTINGS -->
+  <div class="settings-bar">
+    <div class="sg">
+      <span class="sl">Image Size</span>
+      <input type="range" id="r-size" min="150" max="800" value="400" step="10" style="width:120px">
+      <span class="sv" id="v-size">400px</span>
+    </div>
+    <div class="sep"></div>
+    <div class="sg">
+      <span class="sl">Columns</span>
+      <input type="range" id="r-cols" min="1" max="8" value="4" step="1" style="width:80px">
+      <span class="sv" id="v-cols">4</span>
+    </div>
+    <div class="sep"></div>
+    <div class="sg">
+      <span class="sl">Gap</span>
+      <input type="range" id="r-gap" min="8" max="64" value="20" step="2" style="width:90px">
+      <span class="sv" id="v-gap">20px</span>
+    </div>
+    <div class="sep"></div>
+    <div class="sg">
+      <span class="sl">Radius</span>
+      <input type="range" id="r-rad" min="0" max="28" value="10" step="2" style="width:80px">
+      <span class="sv" id="v-rad">10px</span>
+    </div>
+    <div class="sep"></div>
+    <div class="sg">
+      <span class="sl">Theme</span>
+      <div class="rg" id="rg-bg">
+        <button class="rb on" data-v="dark">Dark</button>
+        <button class="rb" data-v="light">Light</button>
+        <button class="rb" data-v="white">Clean</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="sg">
+      <span class="sl">Fit</span>
+      <div class="rg" id="rg-fit">
+        <button class="rb on" data-v="cover">Cover</button>
+        <button class="rb" data-v="contain">Contain</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="sg">
+      <span class="sl">Quality</span>
+      <div class="rg" id="rg-dpr">
+        <button class="rb" data-v="1">1×</button>
+        <button class="rb on" data-v="2">2× HD</button>
+        <button class="rb" data-v="3">3× UHD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TITLE INPUTS -->
+  <div class="title-row">
+    <div class="tf">
+      <label>BEFORE SECTION LABEL</label>
+      <input class="ti b" id="t-before" type="text" value="BEFORE" placeholder="e.g. Current Version">
+    </div>
+    <div class="tf">
+      <label>AFTER SECTION LABEL</label>
+      <input class="ti a" id="t-after" type="text" value="AFTER" placeholder="e.g. New Version">
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="sections">
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><span class="chip cb">BEFORE</span>Current Images</div>
+        <span class="ic" id="bc">0 images</span>
+      </div>
+      <div class="pb">
+        <div class="dz" id="b-dz">
+          <div class="dz-icon">📂</div>
+          <div class="dz-t"><strong>Drop images here</strong> or click to browse</div>
+          <div class="dz-t" style="margin-top:3px;font-size:0.63rem">PNG · JPG · WEBP · Multiple files OK</div>
+          <input type="file" id="b-in" accept="image/*" multiple>
+        </div>
+        <div class="ig" id="b-grid"><div class="eh" id="b-eh">No images yet</div></div>
+        <button class="amb" onclick="document.getElementById('b-in').click()">＋ Add More Images</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <div class="pt"><span class="chip ca">AFTER</span>New Images</div>
+        <span class="ic" id="ac">0 images</span>
+      </div>
+      <div class="pb">
+        <div class="dz" id="a-dz">
+          <div class="dz-icon">🆕</div>
+          <div class="dz-t"><strong>Drop images here</strong> or click to browse</div>
+          <div class="dz-t" style="margin-top:3px;font-size:0.63rem">PNG · JPG · WEBP · Multiple files OK</div>
+          <input type="file" id="a-in" accept="image/*" multiple>
+        </div>
+        <div class="ig" id="a-grid"><div class="eh" id="a-eh">No images yet</div></div>
+        <button class="amb" onclick="document.getElementById('a-in').click()">＋ Add More Images</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAPTURE -->
+  <div class="cap-row">
+    <button class="btn-cap" id="cap-btn" disabled>
+      <span style="font-size:1.1rem">⚡</span>GENERATE OUTPUT
+    </button>
+    <div style="font-size:0.68rem;color:var(--muted);text-align:center;line-height:1.7">
+      Full-resolution PNG · Images render at native quality<br>
+      Drag thumbnails above to reorder<br>
+      BUILT AS A TOOL, USED LIKE A WEAPON.
+    </div>
+  </div>
+
+</div>
+
+<div id="loading">
+  <div class="spin"></div>
+  <p id="lmsg">Rendering…</p>
+</div>
+
+<div id="modal">
+  <div class="mbox">
+    <div class="mtop">
+      <div>
+        <div class="mtitle">📸 Output Preview</div>
+        <div class="mmeta" id="mmeta"></div>
+      </div>
+      <div class="mbtns">
+        <button class="btn-dl" id="dl-png">⬇ PNG</button>
+        <button class="btn-dl jpg" id="dl-jpg">⬇ JPG</button>
+        <button class="btn-cl" id="cl-modal">✕ Close</button>
+      </div>
+    </div>
+    <div id="cscroll"><canvas id="oc"></canvas></div>
+  </div>
+</div>
+
+<canvas id="rc" style="display:none"></canvas>
+
+<script>
+// ── State ──────────────────────────────────────
+const S = { before: [], after: [] };
+let bgTheme = 'dark', fitMode = 'cover', dprVal = 2;
+
+// ── Settings ───────────────────────────────────
+function wire(rid, vid, suf) {
+  const r = document.getElementById(rid), v = document.getElementById(vid);
+  r.addEventListener('input', () => { v.textContent = r.value + suf; });
+}
+wire('r-size', 'v-size', 'px');
+wire('r-cols', 'v-cols', '');
+wire('r-gap',  'v-gap',  'px');
+wire('r-rad',  'v-rad',  'px');
+
+function rGroup(id, cb) {
+  const g = document.getElementById(id);
+  g.querySelectorAll('.rb').forEach(b => {
+    b.addEventListener('click', () => {
+      g.querySelectorAll('.rb').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); cb(b.dataset.v);
+    });
+  });
+}
+rGroup('rg-bg',  v => { bgTheme = v; applyUITheme(v); });
+
+function applyUITheme(t) {
+  const map = {
+    dark:  { '--bg':'#0a0a0d','--s1':'#111115','--s2':'#18181e','--s3':'#222229','--border':'#2a2a35','--border2':'#35353f','--acc':'#e8ff47','--acc2':'#47d4ff','--before':'#ff6060','--after':'#3dffa0','--text':'#eeeef5','--sub':'#8888a0','--muted':'#55556a' },
+    light: { '--bg':'#eeeef8','--s1':'#fafafa', '--s2':'#f0f0f5','--s3':'#e4e4f0','--border':'#d0d0e0','--border2':'#c4c4d8','--acc':'#4f46e5','--acc2':'#0891b2','--before':'#cc2222','--after':'#1a8a50','--text':'#111118','--sub':'#6060a0','--muted':'#8080a0' },
+    white: { '--bg':'#ffffff', '--s1':'#f8f8fa','--s2':'#f0f0f2','--s3':'#e8e8ec','--border':'#e0e0e8','--border2':'#d4d4e0','--acc':'#000000','--acc2':'#0070cc','--before':'#dd3333','--after':'#22aa55','--text':'#000000','--sub':'#777','--muted':'#aaa' },
+  };
+  const vars = map[t] || map.dark;
+  const root = document.documentElement;
+  Object.entries(vars).forEach(([k,v]) => root.style.setProperty(k, v));
+}
+rGroup('rg-fit', v => { fitMode = v; });
+rGroup('rg-dpr', v => { dprVal = parseInt(v); });
+
+// ── Files ──────────────────────────────────────
+document.getElementById('b-in').addEventListener('change', e => addFiles('before', e.target.files));
+document.getElementById('a-in').addEventListener('change', e => addFiles('after',  e.target.files));
+setupDrop('b-dz', 'before');
+setupDrop('a-dz', 'after');
+
+function setupDrop(id, type) {
+  const el = document.getElementById(id);
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); addFiles(type, e.dataTransfer.files); });
+}
+
+function addFiles(type, files) {
+  const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!arr.length) return;
+  let done = 0;
+  arr.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      S[type].push({ file, url, img });
+      if (++done === arr.length) { renderGrid(type); updateUI(); }
+    };
+    img.onerror = () => { if (++done === arr.length) { renderGrid(type); updateUI(); } };
+    img.src = url;
+  });
+}
+
+function removeImg(type, idx) {
+  URL.revokeObjectURL(S[type][idx].url);
+  S[type].splice(idx, 1);
+  renderGrid(type); updateUI();
+}
+
+function renderGrid(type) {
+  const grid  = document.getElementById(type === 'before' ? 'b-grid' : 'a-grid');
+  const empty = document.getElementById(type === 'before' ? 'b-eh'   : 'a-eh');
+  const count = document.getElementById(type === 'before' ? 'bc'     : 'ac');
+  const arr = S[type];
+
+  grid.querySelectorAll('.it').forEach(t => t.remove());
+  count.textContent = arr.length + ' image' + (arr.length !== 1 ? 's' : '');
+  empty.style.display = arr.length ? 'none' : 'block';
+
+  arr.forEach((item, i) => {
+    const t = document.createElement('div');
+    t.className = 'it'; t.draggable = true; t.dataset.idx = i; t.dataset.type = type;
+    t.innerHTML = `<img src="${item.url}" alt=""><span class="it-num">#${i+1}</span><button class="it-del">✕</button>`;
+    t.querySelector('.it-del').addEventListener('click', () => removeImg(type, i));
+
+    t.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', JSON.stringify({type, idx: i})); t.style.opacity = '0.4'; });
+    t.addEventListener('dragend',   () => t.style.opacity = '1');
+    t.addEventListener('dragover',  e => { e.preventDefault(); t.style.outline = '2px solid var(--acc)'; });
+    t.addEventListener('dragleave', () => t.style.outline = '');
+    t.addEventListener('drop', e => {
+      e.preventDefault(); t.style.outline = '';
+      try {
+        const from = JSON.parse(e.dataTransfer.getData('text/plain'));
+        if (from.type !== type) return;
+        const [mv] = S[type].splice(from.idx, 1);
+        S[type].splice(i, 0, mv);
+        renderGrid(type);
+      } catch {}
+    });
+    grid.appendChild(t);
+  });
+}
+
+function updateUI() {
+  const total = S.before.length + S.after.length;
+  document.getElementById('tot').textContent = total + ' image' + (total !== 1 ? 's' : '') + ' loaded';
+  document.getElementById('cap-btn').disabled = total === 0;
+}
+
+document.getElementById('clr-btn').addEventListener('click', () => {
+  S.before.forEach(i => URL.revokeObjectURL(i.url));
+  S.after.forEach(i => URL.revokeObjectURL(i.url));
+  S.before = []; S.after = [];
+  ['before','after'].forEach(t => renderGrid(t));
+  updateUI();
+  document.getElementById('b-in').value = '';
+  document.getElementById('a-in').value = '';
+});
+
+// ── Canvas ─────────────────────────────────────
+document.getElementById('cap-btn').addEventListener('click', buildCanvas);
+
+const THEMES = {
+  dark:  { bg:'#0a0a0d', surf:'#111115', brd:'#2a2a35', txt:'#eeeef5', sub:'#55556a', acc:'#e8ff47', nBg:'#1e1e28', nFg:'#e8ff47', bDiv:'#ff6060', aDiv:'#3dffa0', dot:'rgba(255,255,255,0.05)' },
+  light: { bg:'#eeeef8', surf:'#fafafa',  brd:'#d0d0e0', txt:'#111118', sub:'#8080a0', acc:'#1a1a2e', nBg:'#ddddf0', nFg:'#1a1a2e', bDiv:'#cc2222', aDiv:'#1a8a50', dot:'rgba(0,0,0,0.05)' },
+  white: { bg:'#ffffff',  surf:'#f6f6f8',  brd:'#e0e0ea', txt:'#000000', sub:'#999',    acc:'#000',    nBg:'#eeeeee', nFg:'#000',    bDiv:'#dd3333', aDiv:'#22aa55', dot:'rgba(0,0,0,0.03)' },
+};
+
+async function buildCanvas() {
+  const ld = document.getElementById('loading');
+  const lm = document.getElementById('lmsg');
+  ld.style.display = 'flex'; lm.textContent = 'Preparing…';
+  await tick();
+
+  const thumbSize = parseInt(document.getElementById('r-size').value);
+  const cols      = parseInt(document.getElementById('r-cols').value);
+  const gap       = parseInt(document.getElementById('r-gap').value);
+  const rad       = parseInt(document.getElementById('r-rad').value);
+  const bLabel    = document.getElementById('t-before').value || 'BEFORE';
+  const aLabel    = document.getElementById('t-after').value  || 'AFTER';
+  const T         = THEMES[bgTheme];
+  const DPR       = dprVal;
+
+  const PAD       = 52;
+  const SECGAP    = 64;
+  const HDR_H     = 76;
+  const NUM_H     = 28;
+  const FOOT_H    = 40;
+
+  function gridH(arr) {
+    if (!arr.length) return 52;
+    return Math.ceil(arr.length / cols) * (thumbSize + NUM_H + gap) - gap;
+  }
+
+  const bH = gridH(S.before);
+  const aH = gridH(S.after);
+  const gridW = cols * thumbSize + (cols - 1) * gap;
+  const cW = gridW + PAD * 2;
+  const cH = PAD + HDR_H + bH + SECGAP + HDR_H + aH + FOOT_H + PAD;
+
+  const rc = document.getElementById('rc');
+  rc.width  = cW  * DPR;
+  rc.height = cH * DPR;
+  const ctx = rc.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  // Background
+  ctx.fillStyle = T.bg; ctx.fillRect(0, 0, cW, cH);
+
+  // Dot grid texture
+  ctx.save(); ctx.fillStyle = T.dot;
+  for (let x = PAD; x < cW - PAD; x += 28)
+    for (let y = 28; y < cH; y += 28) {
+      ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI*2); ctx.fill();
+    }
+  ctx.restore();
+
+  let y = PAD;
+  lm.textContent = 'Rendering BEFORE…'; await tick();
+  y = await drawSection(ctx, S.before, bLabel, T.bDiv, T, y, PAD, gridW, thumbSize, cols, gap, rad, NUM_H, HDR_H, cW, fitMode);
+  y += SECGAP;
+  lm.textContent = 'Rendering AFTER…'; await tick();
+  y = await drawSection(ctx, S.after, aLabel, T.aDiv, T, y, PAD, gridW, thumbSize, cols, gap, rad, NUM_H, HDR_H, cW, fitMode);
+
+  // Footer
+  ctx.font = `400 11px "JetBrains Mono", monospace`;
+  ctx.fillStyle = T.sub; ctx.textBaseline = 'bottom';
+  ctx.fillText('Before/After Capture Tool · ' + new Date().toLocaleDateString(), PAD, cH - 10);
+
+  // Copy to display canvas
+  lm.textContent = 'Finalizing…'; await tick();
+  const oc = document.getElementById('oc');
+  oc.width  = rc.width; oc.height = rc.height;
+  oc.style.width  = Math.round(rc.width / DPR) + 'px';
+  oc.style.height = Math.round(rc.height / DPR) + 'px';
+  oc.getContext('2d').drawImage(rc, 0, 0);
+
+  document.getElementById('mmeta').textContent =
+    `Output: ${rc.width}×${rc.height}px · Display: ${Math.round(rc.width/DPR)}×${Math.round(rc.height/DPR)}px · ` +
+    `${DPR}× quality · ${S.before.length + S.after.length} images`;
+
+  ld.style.display = 'none';
+  document.getElementById('modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+async function drawSection(ctx, arr, label, divColor, T, startY, PAD, gridW, thumb, cols, gap, rad, NUM_H, HDR_H, cW, fit) {
+  // Vertical color bar
+  ctx.fillStyle = divColor;
+  rr(ctx, PAD, startY + HDR_H*0.15, 5, HDR_H*0.7, 3); ctx.fill();
+
+  // Label
+  ctx.font = '800 28px Syne, sans-serif';
+  ctx.fillStyle = T.txt; ctx.textBaseline = 'middle';
+  ctx.fillText(label, PAD + 18, startY + HDR_H * 0.44);
+
+  // Count badge
+  const lw = ctx.measureText(label).width;
+  const ct = arr.length + ' image' + (arr.length!==1?'s':'');
+  ctx.font = '500 12px "JetBrains Mono", monospace';
+  const bw = ctx.measureText(ct).width + 20, bh = 22;
+  const bx = PAD + 18 + lw + 14, by = startY + HDR_H*0.44 - bh/2;
+  ctx.fillStyle = divColor+'22'; rr(ctx,bx,by,bw,bh,bh/2); ctx.fill();
+  ctx.strokeStyle = divColor+'55'; ctx.lineWidth=1; rr(ctx,bx,by,bw,bh,bh/2); ctx.stroke();
+  ctx.fillStyle = divColor; ctx.fillText(ct, bx+10, startY+HDR_H*0.44);
+
+  // Divider
+  const dy = startY + HDR_H - 10;
+  const g = ctx.createLinearGradient(PAD,0,cW-PAD,0);
+  g.addColorStop(0, divColor); g.addColorStop(0.45, divColor+'88'); g.addColorStop(1, divColor+'00');
+  ctx.fillStyle = g; ctx.fillRect(PAD, dy, cW - PAD*2, 2);
+
+  const gy = startY + HDR_H + 10;
+
+  if (!arr.length) {
+    ctx.font='400 12px "JetBrains Mono",monospace'; ctx.fillStyle=T.sub; ctx.textBaseline='middle';
+    ctx.fillText('No images uploaded', PAD, gy+24);
+    return gy + 52;
+  }
+
+  for (let i = 0; i < arr.length; i++) {
+    const col = i % cols, row = Math.floor(i / cols);
+    const ix = PAD + col * (thumb + gap);
+    const iy = gy + row * (thumb + NUM_H + gap);
+
+    // Number badge — outside/above image
+    const nl = '#' + (i+1);
+    ctx.font = '700 11px Syne, sans-serif';
+    const nw = ctx.measureText(nl).width + 16, nh = NUM_H - 5;
+    const nx = ix + (thumb - nw)/2, ny = iy + 1;
+    ctx.fillStyle = T.nBg; rr(ctx,nx,ny,nw,nh,nh/2); ctx.fill();
+    ctx.strokeStyle = T.brd; ctx.lineWidth=1; rr(ctx,nx,ny,nw,nh,nh/2); ctx.stroke();
+    ctx.fillStyle = T.nFg; ctx.textBaseline='middle'; ctx.fillText(nl, nx+8, ny+nh/2);
+
+    const imY = iy + NUM_H;
+
+    // Image bg + border
+    ctx.fillStyle = T.surf; rr(ctx,ix,imY,thumb,thumb,rad); ctx.fill();
+    ctx.strokeStyle = T.brd; ctx.lineWidth=1; rr(ctx,ix,imY,thumb,thumb,rad); ctx.stroke();
+
+    // Clipped image — full native resolution
+    ctx.save();
+    rr(ctx, ix, imY, thumb, thumb, rad); ctx.clip();
+    drawFit(ctx, arr[i].img, ix, imY, thumb, thumb, fit);
+    ctx.restore();
+  }
+
+  const rows = Math.ceil(arr.length / cols);
+  return gy + rows*(thumb+NUM_H+gap) - gap;
+}
+
+function drawFit(ctx, img, x, y, w, h, mode) {
+  const iw = img.naturalWidth||img.width, ih = img.naturalHeight||img.height;
+  const ia = iw/ih, ca = w/h;
+  if (mode==='cover') {
+    let sx=0,sy=0,sw=iw,sh=ih;
+    if (ia>ca) { sw=ih*ca; sx=(iw-sw)/2; } else { sh=iw/ca; sy=(ih-sh)/2; }
+    ctx.drawImage(img, sx,sy,sw,sh, x,y,w,h);
+  } else {
+    let dw=w,dh=h,dx=x,dy=y;
+    if (ia>ca) { dh=w/ia; dy=y+(h-dh)/2; } else { dw=h*ia; dx=x+(w-dw)/2; }
+    ctx.drawImage(img, dx,dy,dw,dh);
+  }
+}
+
+function rr(ctx, x, y, w, h, r) {
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x,y,w,h,r); return; }
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function tick() { return new Promise(r => setTimeout(r, 16)); }
+
+// ── Download ──────────────────────────────────
+document.getElementById('dl-png').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'before-after-' + Date.now() + '.png';
+  a.href = document.getElementById('rc').toDataURL('image/png');
+  a.click();
+});
+document.getElementById('dl-jpg').addEventListener('click', () => {
+  const rc = document.getElementById('rc');
+  const tmp = document.createElement('canvas');
+  tmp.width=rc.width; tmp.height=rc.height;
+  const tc = tmp.getContext('2d');
+  tc.fillStyle = THEMES[bgTheme].bg; tc.fillRect(0,0,tmp.width,tmp.height);
+  tc.drawImage(rc,0,0);
+  const a = document.createElement('a');
+  a.download = 'before-after-' + Date.now() + '.jpg';
+  a.href = tmp.toDataURL('image/jpeg', 0.95);
+  a.click();
+});
+
+// ── Modal ─────────────────────────────────────
+document.getElementById('cl-modal').addEventListener('click', closeM);
+document.getElementById('modal').addEventListener('click', e => { if(e.target===document.getElementById('modal')) closeM(); });
+function closeM() { document.getElementById('modal').style.display='none'; document.body.style.overflow=''; }
+</script>
+</body>
+</html>
